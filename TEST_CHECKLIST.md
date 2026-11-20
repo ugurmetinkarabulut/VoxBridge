@@ -4,10 +4,11 @@
 
 | Kontrol | Sonuç |
 | --- | --- |
-| `dotnet restore VoxBridge.sln` | Normal ağ erişimiyle tamamlandı. Kısıtlı ağdaki ilk denemede NuGet adresi çözümlenemedi (`NU1301`, `NU1900`). |
+| `dotnet restore VoxBridge.sln` | Başarılı. Son denetimde normal ağ erişimiyle uyarısız tamamlandı. |
 | Debug ve Release | .NET SDK 10.0.401 ile Windows hedefi derlendi. Her iki yapılandırmada 0 uyarı ve 0 hata. |
 | Paket güvenlik denetimi | NuGet denetimi açık kaldı. Normal ağ üzerinden yapılan `dotnet package list --vulnerable --include-transitive` sorgusu bilinen açık listelemedi. |
-| Platformdan bağımsız mantık | Geçici bir .NET 10 konsol projesiyle `AudioSession` ve `TextToSpeechService.ValidateSpeech` üzerinde 38 kontrol geçti. |
+| Platformdan bağımsız mantık | Başarılı. `AudioSession` ve `TextToSpeechService.ValidateSpeech` üzerinde 38 kontrol geçti. |
+| Tanıma motorunu temizleme mantığı | Başarılı. Geçici .NET 10 projesinde taklit motorla 22 kontrol geçti. Başlatma, dikte ve mikrofon hataları, iptal hatasına rağmen temizleme, `Dispose` hatası sonrası yeniden deneme ve eski oturumun reddi kontrol edildi. |
 
 Mantık kontrolleri boş metni ve yalnızca boşluk içeren metni reddetmeyi, geçersiz hızları reddetmeyi ve −10, 0, +10 değerlerini kabul etmeyi kapsadı. Her iki işlem için tekrarlı veya eş zamanlı başlatma, durdurma süresince başlatmayı engelleme, ilgisiz tamamlanma olayını yok sayma, normal bitiş ve iptal sonrası yeniden başlatma kontrol edildi.
 
@@ -18,7 +19,7 @@ Mantık kontrolleri boş metni ve yalnızca boşluk içeren metni reddetmeyi, ge
 - **Hoparlör ve mikrofon** `____________________`
 - **Denenen sesler ve tanıma dilleri** `____________________`
 
-Kutuları gerçek testin ardından işaretleyin. Motora veya aygıta bağlı bir senaryo eldeki bilgisayarda uygulanamıyorsa sonucu gerekçesiyle kaydedin.
+Bu bölümdeki tüm kontroller **henüz denenmedi**. Gerçek testte sonucu **başarılı**, **başarısız** veya **henüz denenmedi** olarak kaydedin. Başarısız ya da uygulanamayan senaryoların yanına gerekçeyi ve görülen durum mesajını yazın.
 
 ### Başlatma ve arayüz
 
@@ -34,6 +35,7 @@ Kutuları gerçek testin ardından işaretleyin. Motora veya aygıta bağlı bir
 - [ ] Varsa iki farklı sesle uygun dillerde metin okutun. Listede ses adı ve dili görünür. Türkçe yüklüyse Türkçe sesi deneyin. Türkçe yoksa listelenen bir sesle devam edin.
 - [ ] Uzun bir metni okutun. Pencere yanıt vermeye devam eder. **Durdur** sesi keser. İptal tamamlanınca **Seslendirme durduruldu** durumu görünür ve metin yeniden okutulabilir.
 - [ ] Aktif seslendirmede **Temizle** düğmesine basın. Yazı silinir ve ses durur. İptal bitince yeni metin okutulabilir.
+- [ ] Tek sözcüklük bir metni art arda okutun. Ardından uzun bir metni iptal edip tekrar okutun. Önceki tamamlanma bildirimi yeni okumanın durumunu değiştirmez.
 - [ ] Kullanılabilir ses bulunmayan bir Windows ortamında açın. Seslendirme devre dışıdır ve durum açıklaması görünür. Uygun bir tanıma motoru varsa STT çalışır.
 
 ### Speech-to-Text
@@ -41,8 +43,10 @@ Kutuları gerçek testin ardından işaretleyin. Motora veya aygıta bağlı bir
 - [ ] Dikte destekli bir tanıma motoru seçin. **Dinlemeyi Başlat** düğmesine basın ve seçili dilde, aralarında kısa duraklama bulunan iki ifade söyleyin. Mikrofon durumu etkin görünür ve yeni ifadeler önceki yazıyı koruyarak eklenir.
 - [ ] Dinleme sürerken metni kopyalayın ve pencereyi hareket ettirin. Kontroller yanıt verir. **Temizle** yazıyı siler ve yeni tanınan ifade boş kutuya eklenir.
 - [ ] **Dinlemeyi Durdur** düğmesine basıp konuşmaya devam edin. Yeni metin eklenmez. **Mikrofon kapalı** mesajı geldikten sonra Windows mikrofon kullanımının bittiğini kontrol edin. Yeni bir oturum açın ve metin ekleyebildiğinizi doğrulayın.
-- [ ] Dinleme başlar başlamaz durdurmayı deneyin. Kapanış tamamlanana kadar yeniden başlatma bekler ve ardından yeni bir oturum açılabilir.
+- [ ] Dinlemeyi başlatır başlatmaz durdurun. Mikrofon kapandıktan sonra hemen yeniden başlatın ve konuşun. Bu sırayı birkaç kez tekrarlayın. Eski oturum yeni oturumun durumunu veya metnini değiştirmez.
+- [ ] Durdurma tamamlanma bildirimi gelmezse yaklaşık üç saniye sonra durum mesajını kontrol edin. Motor bırakıldıysa yeni işlem başlayabilir. Temizleme hatası varsa **Dinlemeyi Durdur** temizliği tekrar dener. Kaynak bırakılana kadar iki başlatma düğmesi pasif kalır.
 - [ ] Varsayılan mikrofonu çıkarın veya devre dışı bırakın ve dinlemeyi başlatın. Uygulama açık kalır. Windows'un bildirdiği bir hata durum etiketinde gösterilir. Çalışan bir mikrofon seçip tekrar deneyin.
+- [ ] Takılı mikrofonu aktif dinleme sırasında çıkarın ve **Dinlemeyi Durdur** düğmesine basın. Aygıtı yeniden bağlayın ve kaynaklar bırakıldıktan sonra yeni bir oturum açın.
 - [ ] Masaüstü uygulamalarının mikrofon iznini kapatıp tekrar deneyin. Uygulama açık kalır. İzin engelliyken konuşma metne dönüştürülmez. İzni geri açınca tekrar deneyin.
 - [ ] Kullanılabilir tanıma motoru olmayan bir Windows ortamında açın. Dinleme devre dışıdır ve durum açıklaması görünür. Kullanılabilir bir ses varsa TTS çalışır.
 - [ ] Serbest dikteyi desteklemeyen bir motor varsa seçip dinlemeyi başlatın. Dikte hatası açıklanır. Başka bir uygun motorla tekrar başlatılabilir.
@@ -52,5 +56,5 @@ Kutuları gerçek testin ardından işaretleyin. Motora veya aygıta bağlı bir
 
 - [ ] Seslendirme sırasında dinleme düğmesi pasiftir. Seslendirmeyi durdurun. Tamamlanma ardından dinlemeyi başlatın. Dinleme sırasında seslendirme düğmesi pasiftir ve mikrofon bırakılınca yeniden etkinleşir.
 - [ ] Uzun bir metin seslendirilirken pencereyi kapatın. Ses kesilir ve işlem kapanır. Uygulamayı yeniden açıp seslendirmeyi tekrar deneyin.
-- [ ] Dinleme sürerken pencereyi kapatın. Windows mikrofon göstergesi söner ve işlem kapanır. Uygulamayı yeniden açıp mikrofonun kullanılabildiğini kontrol edin.
+- [ ] Dinleme sürerken ve dinleme yeni başlatılmışken pencereyi kapatın. Windows mikrofon göstergesi söner ve VoxBridge işlemi kapanır. Uygulamayı yeniden açıp aynı mikrofonla dinleme yapılabildiğini kontrol edin.
 - [ ] README'deki iki bölüm için Windows'tan bir seslendirme ve bir dinleme ekran görüntüsü alın.

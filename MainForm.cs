@@ -18,6 +18,7 @@ internal sealed class MainForm : Form
 
     private readonly AudioSession audio = new();
     private readonly SpeechToTextService recognition = new();
+    private readonly System.Windows.Forms.Timer recognitionStopTimer = new() { Interval = 3000 };
     private TextToSpeechService? speech;
     private Prompt? currentPrompt;
     private volatile bool closing;
@@ -138,6 +139,11 @@ internal sealed class MainForm : Form
 
         recognition.SpeechRecognized += OnSpeechRecognized;
         recognition.RecognitionCompleted += OnRecognitionCompleted;
+        recognitionStopTimer.Tick += (_, _) =>
+        {
+            // Tamamlanma olayı gelmezse motoru kapat ve sonucu arayüze bildir.
+            FinishListening("Durdurma yanıtı alınamadı. Motor kapatıldı ve mikrofon bırakıldı.", Red, cancel: true);
+        };
         Shown += (_, _) => LoadSpeechOptions();
 
         UpdateControls();
@@ -283,6 +289,12 @@ internal sealed class MainForm : Form
 
     private void StopListening()
     {
+        if (recognition.IsReleasePending)
+        {
+            FinishListening("Dinleme durduruldu. Mikrofon kapalı.", Muted);
+            return;
+        }
+
         if (audio.ActiveMode != AudioMode.Listening || audio.IsStopping)
             return;
 
@@ -291,11 +303,13 @@ internal sealed class MainForm : Form
             recognition.Stop();
             audio.TryStop(AudioMode.Listening);
             recognitionMessage = ("Dinleme durduruluyor…", Muted);
+            recognitionStopTimer.Start();
         }
         catch (Exception exception)
         {
             Debug.WriteLine(exception);
-            recognitionMessage = ("Dinleme durdurulamadı. Tekrar deneyin veya pencereyi kapatın.", Red);
+            FinishListening("İptal sırasında hata oluştu. Motor kapatıldı ve mikrofon bırakıldı.", Red);
+            return;
         }
 
         UpdateControls();
@@ -324,31 +338,33 @@ internal sealed class MainForm : Form
             if (!recognition.IsCurrentEngine(sender))
                 return;
 
-            try
-            {
-                // Diğer işlem, motor ve mikrofon bırakıldıktan sonra açılır.
-                recognition.ReleaseEngine();
-            }
-            catch (Exception exception)
-            {
-                HandleRecognitionError(exception, "Durdurma sırasında hata oluştu. Mikrofon kapalı.");
-                UpdateControls();
-                return;
-            }
-
-            audio.Complete(AudioMode.Listening);
             if (e.Error is not null)
             {
                 Debug.WriteLine(e.Error);
-                recognitionMessage = ("Dinleme sona erdi. Windows ses girişini ve mikrofon izinlerini kontrol edin.", Red);
+                FinishListening("Dinleme sona erdi. Windows ses girişini ve mikrofon izinlerini kontrol edin.", Red);
             }
             else
             {
-                recognitionMessage = (e.Cancelled ? "Dinleme durduruldu. Mikrofon kapalı." : "Dinleme bitti. Mikrofon kapalı.", Muted);
+                FinishListening(e.Cancelled ? "Dinleme durduruldu. Mikrofon kapalı." : "Dinleme bitti. Mikrofon kapalı.", Muted);
             }
-
-            UpdateControls();
         });
+    }
+
+    private void FinishListening(string message, Color color, bool cancel = false)
+    {
+        recognitionStopTimer.Stop();
+        try
+        {
+            recognition.ReleaseEngine(cancel);
+            audio.Complete(AudioMode.Listening);
+            recognitionMessage = (message, color);
+        }
+        catch (Exception exception)
+        {
+            HandleRecognitionError(exception, "Durdurma sırasında hata oluştu. Mikrofon kapalı.");
+        }
+
+        UpdateControls();
     }
 
     private void HandleRecognitionError(Exception exception, string message)
@@ -357,7 +373,7 @@ internal sealed class MainForm : Form
         if (recognition.HasOpenEngine)
         {
             audio.TryStop(AudioMode.Listening);
-            recognitionMessage = ("Mikrofon kapatılamadı. Pencereyi kapatıp uygulamayı yeniden açın.", Red);
+            recognitionMessage = ("Mikrofon kapatılamadı. Dinlemeyi Durdur ile tekrar deneyin veya pencereyi kapatın.", Red);
         }
         else
         {
@@ -395,7 +411,7 @@ internal sealed class MainForm : Form
         speakButton.Enabled = idle && voices.Items.Count > 0;
         listenButton.Enabled = idle && recognizers.Items.Count > 0;
         stopSpeechButton.Enabled = speaking && !audio.IsStopping;
-        stopListeningButton.Enabled = listening && !audio.IsStopping;
+        stopListeningButton.Enabled = listening && (!audio.IsStopping || recognition.IsReleasePending);
         voices.Enabled = speakButton.Enabled;
         rate.Enabled = speakButton.Enabled;
         recognizers.Enabled = listenButton.Enabled;
@@ -413,6 +429,7 @@ internal sealed class MainForm : Form
         if (disposing && !closing)
         {
             closing = true;
+            recognitionStopTimer.Dispose();
 
             recognition.SpeechRecognized -= OnSpeechRecognized;
             recognition.RecognitionCompleted -= OnRecognitionCompleted;

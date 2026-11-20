@@ -7,6 +7,7 @@ internal sealed class SpeechToTextService : IDisposable
     private SpeechRecognitionEngine? engine;
 
     public bool HasOpenEngine => engine is not null;
+    public bool IsReleasePending { get; private set; }
 
     public event EventHandler<SpeechRecognizedEventArgs>? SpeechRecognized;
     public event EventHandler<RecognizeCompletedEventArgs>? RecognitionCompleted;
@@ -40,7 +41,14 @@ internal sealed class SpeechToTextService : IDisposable
         }
         catch (Exception exception)
         {
-            ReleaseEngine();
+            try
+            {
+                ReleaseEngine();
+            }
+            catch (Exception cleanupError)
+            {
+                throw new InvalidOperationException(errorMessage, new AggregateException(exception, cleanupError));
+            }
             throw new InvalidOperationException(errorMessage, exception);
         }
     }
@@ -52,7 +60,7 @@ internal sealed class SpeechToTextService : IDisposable
 
     public bool IsCurrentEngine(object? sender)
     {
-        return engine is not null && ReferenceEquals(engine, sender);
+        return engine is not null && !IsReleasePending && ReferenceEquals(engine, sender);
     }
 
     public void ReleaseEngine(bool cancel = false)
@@ -60,17 +68,25 @@ internal sealed class SpeechToTextService : IDisposable
         if (engine is null)
             return;
 
+        bool firstAttempt = !IsReleasePending;
+        IsReleasePending = true;
         try
         {
-            engine.SpeechRecognized -= OnSpeechRecognized;
-            engine.RecognizeCompleted -= OnRecognitionCompleted;
+            if (firstAttempt)
+            {
+                engine.SpeechRecognized -= OnSpeechRecognized;
+                engine.RecognizeCompleted -= OnRecognitionCompleted;
+            }
+
             if (cancel)
                 engine.RecognizeAsyncCancel();
         }
         finally
         {
+            // Dispose başarısızsa motoru sakla. Başka bir işlem açmadan temizliği tekrar dene.
             engine.Dispose();
             engine = null;
+            IsReleasePending = false;
         }
     }
 

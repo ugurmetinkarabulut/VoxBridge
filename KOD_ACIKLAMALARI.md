@@ -75,3 +75,25 @@ Programın kontrolü dışındaki işlemler hata verebilir. Örneğin Windows va
 | `AudioSession` | Hangi ses işleminin etkin olduğunu ve durdurmanın beklenip beklenmediğini tutar. |
 
 Bu ayrım sayesinde ses servisleri Windows Forms kontrollerine erişmez. Örneğin durdurma sırasında ikinci bir ses işleminin başlatılmadığını, formu açmadan `AudioSession` üzerinde kontrol edebiliriz.
+
+## Sözlü sınav için beş kod değiştirme sorusu
+
+1. **Varsayılan konuşma hızını +2 yapmak için neyi değiştirirsiniz?**
+
+   `MainForm` içindeki `rate` tanımına `Value = 2` ekleyin ve ilk `rateLabel` metnini `"Konuşma hızı · +2"` yapın. Kullanıcı hızı değiştirince mevcut `ValueChanged` kodu etiketi günceller.
+
+2. **Tanınan ifadeleri aynı paragrafta nasıl gösterirsiniz?**
+
+   `MainForm.OnSpeechRecognized` içinde `recognizedText.AppendText(Environment.NewLine)` yerine `recognizedText.AppendText(" ")` yazın. İlk ifade için boşluk eklenmemesini sağlayan `TextLength > 0` koşulunu koruyun.
+
+3. **Seslendirme hızını −5 ile +5 arasına nasıl sınırlarsınız?**
+
+   `TextToSpeechService` içinde `MinRate = -5` ve `MaxRate = 5` yapın. `ValidateSpeech` hata metnini de bu değerlerle güncelleyin. `MainForm` kaydırıcısı aynı sabitleri kullandığı için yeni aralığı otomatik alır.
+
+4. **Dinleme temizlenemezse Durdur düğmesi nasıl yeniden kullanılabilir?**
+
+   `MainForm.UpdateControls` içinde düğmeyi `listening && (!audio.IsStopping || recognition.IsReleasePending)` koşuluyla etkinleştirin. `StopListening` içinde `IsReleasePending` doğruysa iptali tekrar göndermek yerine `FinishListening` ile kaynak temizliğini yeniden deneyin. Bu akış projede uygulanmıştır.
+
+5. **Her ses işleminde yalnızca doğru tamamlanma bildiriminin durumu sıfırladığını nasıl kontrol edersiniz?**
+
+   Bir `AudioSession` oluşturun. `TryStart(AudioMode.Speaking)` ardından yanlış türde bir bildirim gibi `Complete(AudioMode.Listening)` çağırın. `ActiveMode` hâlâ `Speaking` olmalı. Sonra `Complete(AudioMode.Speaking)` çağırdığınızda `ActiveMode` boş olmalı. Kontrolü testte görünür kılmak için her çağrıdan sonra beklenen değeri bir `if` ile denetleyin ve farklıysa hata fırlatın.

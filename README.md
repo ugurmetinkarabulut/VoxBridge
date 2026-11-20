@@ -21,6 +21,13 @@ VoxBridge, yazdığınız metni seslendiren ve mikrofondan aldığınız konuşm
 
 ## Windows'ta kurulum ve çalıştırma
 
+Projeyi GitHub'dan klonlayın ve VoxBridge klasörüne geçin. [VoxBridge GitHub deposu](https://github.com/ugurmetinkarabulut/VoxBridge)
+
+```powershell
+git clone https://github.com/ugurmetinkarabulut/VoxBridge.git
+cd VoxBridge
+```
+
 ### Visual Studio
 
 1. Visual Studio 2026'yı (18.0 veya üstü) **.NET masaüstü geliştirme** iş yükü ve .NET 10 SDK ile yükleyin. [Microsoft .NET kurulum kılavuzu](https://learn.microsoft.com/dotnet/core/install/windows)
