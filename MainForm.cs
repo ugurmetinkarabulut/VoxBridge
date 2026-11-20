@@ -21,6 +21,7 @@ internal sealed class MainForm : Form
     private readonly System.Windows.Forms.Timer recognitionStopTimer = new() { Interval = 3000 };
     private TextToSpeechService? speech;
     private Prompt? currentPrompt;
+    private bool closeAfterListening;
     private volatile bool closing;
 
     private readonly RichTextBox speechText = CreateTextBox("Seslendirilecek metin", readOnly: false);
@@ -295,23 +296,21 @@ internal sealed class MainForm : Form
             return;
         }
 
-        if (audio.ActiveMode != AudioMode.Listening || audio.IsStopping)
+        if (!audio.TryStop(AudioMode.Listening))
             return;
 
+        recognitionMessage = ("Dinleme durduruluyor…", Muted);
         try
         {
             recognition.Stop();
-            audio.TryStop(AudioMode.Listening);
-            recognitionMessage = ("Dinleme durduruluyor…", Muted);
-            recognitionStopTimer.Start();
         }
         catch (Exception exception)
         {
             Debug.WriteLine(exception);
-            FinishListening("İptal sırasında hata oluştu. Motor kapatıldı ve mikrofon bırakıldı.", Red);
-            return;
+            recognitionMessage = ("İptal isteği başarısız. Motorun kapanması bekleniyor.", Red);
         }
 
+        recognitionStopTimer.Start();
         UpdateControls();
     }
 
@@ -364,6 +363,21 @@ internal sealed class MainForm : Form
             HandleRecognitionError(exception, "Durdurma sırasında hata oluştu. Mikrofon kapalı.");
         }
 
+        if (closeAfterListening && !recognition.HasOpenEngine)
+        {
+            RunOnUiThread(() =>
+            {
+                closeAfterListening = false;
+                Close();
+                if (!closing)
+                    UpdateControls();
+            });
+        }
+        else
+        {
+            closeAfterListening = false;
+        }
+
         UpdateControls();
     }
 
@@ -404,7 +418,7 @@ internal sealed class MainForm : Form
 
     private void UpdateControls()
     {
-        bool idle = audio.ActiveMode is null;
+        bool idle = audio.ActiveMode is null && !closeAfterListening;
         bool speaking = audio.ActiveMode == AudioMode.Speaking;
         bool listening = audio.ActiveMode == AudioMode.Listening;
 
@@ -422,6 +436,19 @@ internal sealed class MainForm : Form
         (recognitionStatus.Text, recognitionStatus.ForeColor) = speaking && recognizers.Items.Count > 0
             ? ("Dinlemek için seslendirmenin bitmesini bekleyin.", Muted)
             : recognitionMessage;
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        base.OnFormClosing(e);
+        if (e.Cancel || e.CloseReason != CloseReason.UserClosing ||
+            audio.ActiveMode != AudioMode.Listening || recognition.IsReleasePending)
+            return;
+
+        // Motorun arka plandaki başlangıcı bitmeden Dispose çağırmamak için önce dinlemeyi durdur.
+        e.Cancel = true;
+        closeAfterListening = true;
+        StopListening();
     }
 
     protected override void Dispose(bool disposing)

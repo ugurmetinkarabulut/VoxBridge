@@ -9,6 +9,7 @@
 | Paket güvenlik denetimi | NuGet denetimi açık kaldı. Normal ağ üzerinden yapılan `dotnet package list --vulnerable --include-transitive` sorgusu bilinen açık listelemedi. |
 | Platformdan bağımsız mantık | Başarılı. `AudioSession` ve `TextToSpeechService.ValidateSpeech` üzerinde 38 kontrol geçti. |
 | Tanıma motorunu temizleme mantığı | Başarılı. Geçici .NET 10 projesinde taklit motorla 22 kontrol geçti. Başlatma, dikte ve mikrofon hataları, iptal hatasına rağmen temizleme, `Dispose` hatası sonrası yeniden deneme ve eski oturumun reddi kontrol edildi. |
+| Pencere kapanış sırası | Başarılı. Kapanış metotları taklit pencere, zamanlayıcı ve motorla 16 kontrolden geçti. Hızlı kapanış, yinelenen kapatma isteği, zaman aşımı ve temizlik hatasından sonra yeniden deneme kapsandı. |
 
 Mantık kontrolleri boş metni ve yalnızca boşluk içeren metni reddetmeyi, geçersiz hızları reddetmeyi ve −10, 0, +10 değerlerini kabul etmeyi kapsadı. Her iki işlem için tekrarlı veya eş zamanlı başlatma, durdurma süresince başlatmayı engelleme, ilgisiz tamamlanma olayını yok sayma, normal bitiş ve iptal sonrası yeniden başlatma kontrol edildi.
 
@@ -56,5 +57,6 @@ Bu bölümdeki tüm kontroller **henüz denenmedi**. Gerçek testte sonucu **ba�
 
 - [ ] Seslendirme sırasında dinleme düğmesi pasiftir. Seslendirmeyi durdurun. Tamamlanma ardından dinlemeyi başlatın. Dinleme sırasında seslendirme düğmesi pasiftir ve mikrofon bırakılınca yeniden etkinleşir.
 - [ ] Uzun bir metin seslendirilirken pencereyi kapatın. Ses kesilir ve işlem kapanır. Uygulamayı yeniden açıp seslendirmeyi tekrar deneyin.
-- [ ] Dinleme sürerken ve dinleme yeni başlatılmışken pencereyi kapatın. Windows mikrofon göstergesi söner ve VoxBridge işlemi kapanır. Uygulamayı yeniden açıp aynı mikrofonla dinleme yapılabildiğini kontrol edin.
+- [ ] Dinleme sürerken pencerenin kapatma düğmesine basın. İptal ve kaynak temizliği tamamlanınca pencere kapanır. Windows mikrofon göstergesi söner ve VoxBridge işlemi sonlanır. Uygulamayı yeniden açıp aynı mikrofonla dinlemeyi deneyin.
+- [ ] **Dinlemeyi Başlat** düğmesine basar basmaz pencereyi kapatın. Bunu birkaç kez tekrarlayın. Kapanış, dinleme bitişini veya mevcut durdurma zaman aşımını bekler. Mikrofon göstergesinin söndüğünü ve uygulamanın yeniden açılabildiğini doğrulayın.
 - [ ] README'deki iki bölüm için Windows'tan bir seslendirme ve bir dinleme ekran görüntüsü alın.
