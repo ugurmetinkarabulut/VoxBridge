@@ -2,8 +2,8 @@
 
 VoxBridge, yazdığınız metni seslendiren ve mikrofondan aldığınız konuşmayı yazıya çeviren bir Windows masaüstü uygulamasıdır. Fırat Üniversitesi Yazılım Mühendisliği 2. sınıf **Nesne Tabanlı Programlama (YMH219)** dersi için geliştirilmiştir.
 
-- **Öğrenci adı ve soyadı** `____________________`
-- **Öğrenci numarası** `____________________`
+- **Öğrenci adı ve soyadı** `Uğur Metin Karabulut`
+- **Öğrenci numarası** `250541103`
 
 ## Teknolojiler
 
